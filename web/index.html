@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bharat Voice Studio - 12 Languages Real-Time Voice Translator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=9.0">
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="glow-bg top-left"></div>
+  <div class="glow-bg bottom-right"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">🎙️</div>
+        <div>
+          <h1 class="brand-title">Bharat Voice Studio</h1>
+          <p class="brand-subtitle">Real-Time Multilingual Speech to Indian & Global Languages</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="badge" id="statusBadge">
+          <span class="status-dot"></span>
+          <span id="statusText">Ready to Listen</span>
+        </div>
+
+        <!-- Own Voice Clone Switch (No Modal) -->
+        <label class="own-voice-toggle voice-off" id="ownVoiceToggleWrap" title="Default AI Voice active. Own voice has limited tokens, use consciously — switch to Own Voice if needed.">
+          <input type="checkbox" id="ownVoiceToggle" onchange="toggleOwnVoiceClone(this.checked)">
+          <span class="slider"></span>
+          <span class="toggle-label" id="ownVoiceLabel">
+            <span>Own Voice</span>
+            <span class="voice-state-pill" id="ownVoiceStatePill">Default AI Voice</span>
+          </span>
+        </label>
+
+        <label class="auto-speak-toggle" title="Automatically upload voice audio and translations to server">
+          <input type="checkbox" id="autoUploadCheckbox" checked>
+          <span class="slider"></span>
+          <span class="toggle-label">Auto-Upload</span>
+        </label>
+
+        <button class="tool-btn browser-launch-btn" onclick="fetch('/api/open-in-browser')" title="Open in default Chrome/Edge browser window" style="padding: 6px 12px; font-size: 12px; border-radius: 8px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #818cf8; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+          🌐 Open in Browser
+        </button>
+      </div>
+    </header>
+
+    <!-- Google Translate Style Language Routing Bar -->
+    <section class="gt-translator-container">
+      <div class="gt-top-bar">
+        <!-- FROM Language Panel -->
+        <div class="gt-lang-side gt-from-panel">
+          <div class="gt-side-badge">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="gt-badge-tag from-tag">FROM</span>
+              <span class="gt-badge-title">Source Language (Speech / Media)</span>
+            </div>
+            <span class="detected-badge" id="detectedBadge" style="margin:0; font-size:11px; padding:3px 10px;">Source: 🇬🇧 English</span>
+          </div>
+          <div class="gt-dropdown-wrapper">
+            <select id="fromLanguageSelect" class="gt-select-dropdown" onchange="setFromLang(this.value)">
+              <option value="en" selected>🇬🇧 English (Global)</option>
+              <option value="ta">🇮🇳 Tamil (தமிழ்)</option>
+              <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+              <option value="ml">🌴 Malayalam (മലയാളം)</option>
+              <option value="te">🏛️ Telugu (తెలుగు)</option>
+              <option value="kn">🌾 Kannada (ಕನ್ನಡ)</option>
+              <option value="bn">🐯 Bengali (বাংলা)</option>
+              <option value="mr">🚩 Marathi (मराठी)</option>
+              <option value="gu">🦁 Gujarati (ગુજરાતી)</option>
+              <option value="pa">🌾 Punjabi (ਪੰਜਾਬੀ)</option>
+              <option value="or">🛕 Odia (ଓଡ଼ିଆ)</option>
+              <option value="ur">🌙 Urdu (اردو)</option>
+            </select>
+            <span class="gt-select-chevron">▾</span>
+          </div>
+        </div>
+
+        <!-- Google Translate Swap Button (⇄) -->
+        <div class="gt-swap-divider">
+          <button type="button" class="gt-swap-button" onclick="swapLanguages()" title="Swap FROM and TO languages (like Google Translate)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="gt-swap-svg">
+              <path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- TO Language Panel -->
+        <div class="gt-lang-side gt-to-panel">
+          <div class="gt-side-badge">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="gt-badge-tag to-tag">TO</span>
+              <span class="gt-badge-title">Target Language (Transfer Into)</span>
+            </div>
+            <span class="gt-active-count-pill" id="targetCountIndicator" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171;">Select Language *</span>
+          </div>
+          <div class="gt-dropdown-wrapper">
+            <select id="toLanguageSelect" class="gt-select-dropdown" onchange="setToLang(this.value)" required>
+              <option value="" disabled selected>-- Select Target Language (Mandatory) * --</option>
+              <option value="ta">🇮🇳 Tamil (தமிழ்)</option>
+              <option value="en">🇬🇧 English (Global)</option>
+              <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+              <option value="ml">🌴 Malayalam (മലയാളം)</option>
+              <option value="te">🏛️ Telugu (తెలుగు)</option>
+              <option value="kn">🌾 Kannada (ಕನ್ನಡ)</option>
+              <option value="bn">🐯 Bengali (বাংলা)</option>
+              <option value="mr">🚩 Marathi (मराठी)</option>
+              <option value="gu">🦁 Gujarati (ગુજરાતી)</option>
+              <option value="pa">🌾 Punjabi (ਪੰਜਾਬੀ)</option>
+              <option value="or">🛕 Odia (ଓଡ଼ିଆ)</option>
+              <option value="ur">🌙 Urdu (اردو)</option>
+            </select>
+            <span class="gt-select-chevron">▾</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Translate Action Strip: Audio Import, Route Summary & Filter Toggle -->
+      <div class="gt-action-strip">
+        <div class="gt-route-info">
+          <span class="gt-route-icon">⚡</span>
+          <div>
+            <span class="gt-route-label">Current Route:</span>
+            <span class="gt-route-val" id="importRouteSummary">Auto-Detect ➔ All 12 Languages</span>
+          </div>
+        </div>
+
+        <div class="gt-strip-actions">
+          <button type="button" class="gt-import-btn" onclick="triggerAudioUpload()" title="Import audio/video to transfer into chosen languages">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:17px;height:17px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Import Audio / Video</span>
+          </button>
+          <input type="file" id="audioFileInput" accept="audio/*,video/*,.mp4,.mkv,.avi,.mov,.webm,.flv,.wmv,.m4v,.3gp,.mp3,.wav,.m4a,.aac,.flac,.ogg" style="display:none;" onchange="handleAudioFileUpload(event)">
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Hero: Mic & Visualizer -->
+    <section class="hero-section">
+
+      <div class="mic-container">
+        <div class="pulse-ring" id="pulseRing"></div>
+        <button id="micBtn" class="mic-button" aria-label="Toggle Microphone">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Live Audio Wave Canvas -->
+      <canvas id="visualizerCanvas" width="360" height="40"></canvas>
+      <p class="hero-hint" id="heroHint">Click the microphone & speak in Tamil, English, Hindi, or any language!</p>
+    </section>
+
+    <!-- Master Spoken Card with Auto-Detect Badge, Audio Play, Download & Auto-Upload -->
+    <section class="master-card-section">
+      <div class="card master-card">
+        <div class="card-header">
+          <div class="lang-tag">
+            <span class="lang-flag" id="masterLangFlag">🎙️</span>
+            <div>
+              <span class="lang-name" id="masterLangTitle">Spoken Voice</span>
+              <span class="detected-badge" id="detectedBadge">🌐 Auto-Detect: Ready</span>
+            </div>
+          </div>
+          <div class="master-actions">
+            <button class="tool-btn" id="playMyAudioBtn" onclick="playMyRecording()" disabled title="Play Recorded Mic Audio">
+              ▶ Play My Audio
+            </button>
+            <button class="tool-btn" id="downloadMyAudioBtn" onclick="downloadMyRecording()" disabled title="Download Spoken Audio File (.webm)">
+              ⬇ Download Audio
+            </button>
+            <button class="tool-btn export-tool-btn" onclick="downloadAllTranslations()" title="Export All Translations to Text File">
+              📄 Export All (TXT)
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="speech-box-wrapper">
+            <div class="speech-box-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="speech-label" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Spoken / Extracted Speech:</span>
+              <!-- <span class="edit-badge" style="font-size: 11px; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 3px 8px; border-radius: 6px; cursor: pointer;" title="You can edit any word directly in the box below">✏️ Click text to edit words</span> -->
+            </div>
+            <p class="speech-text" id="spokenText" contenteditable="true" spellcheck="false" title="Click anywhere here to edit words directly">Speak in any language or upload a video/audio file... your speech will display live and be translated into your selected target language.</p>
+            
+          </div>
+          <div class="media-player-container" id="mediaPlayerContainer" style="display:none; margin-top: 15px;">
+            <div id="videoContainer" style="display:none; margin-bottom: 12px; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+              <video id="uploadedVideoPlayer" controls playsinline style="width: 100%; max-height: 280px; display: block; border-radius: 12px;"></video>
+            </div>
+            <div class="audio-player-wrap" id="audioPlayerWrap" style="display:none;">
+              <audio id="recordedAudioPlayer" controls style="width:100%; height:44px; outline:none; border-radius: 22px;"></audio>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-Upload Status Notification Banner -->
+        <div class="upload-status-bar" id="uploadStatusBar" style="display:none;">
+          <span class="upload-icon">☁️</span>
+          <span id="uploadStatusText">Auto-Saved to server!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fixed 12-Languages Grid Section -->
+    <section class="results-section">
+      <div class="section-title-wrap">
+        <div>
+          <h2 class="section-title">Live 12 Languages Simultaneous Translations & Pronunciation</h2>
+          <p class="section-desc">Auto-detected speech translated across 12 Indian & Global languages with phonetic pronunciation</p>
+        </div>
+        <span class="sub-counter" id="cardsCounter">12 Languages Live</span>
+      </div>
+
+      <div class="cards-grid">
+        <!-- 1. Tamil -->
+        <div class="card target-card tamil-card" id="card-ta">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🇮🇳</span>
+              <div>
+                <span class="lang-name">Tamil</span>
+                <span class="lang-native">தமிழ்</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('ta')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('ta')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('ta')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-ta">தமிழ் மொழிபெயர்ப்பு இங்கே தோன்றும்...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-ta">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-ta">Tamil pronunciation...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. English -->
+        <div class="card target-card english-card" id="card-en">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🇬🇧</span>
+              <div>
+                <span class="lang-name">English</span>
+                <span class="lang-native">Global</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('en')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('en')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('en')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-en">Translations will appear here instantly...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-en" style="display:none;">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-en">...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Hindi -->
+        <div class="card target-card hindi-card" id="card-hi">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🇮🇳</span>
+              <div>
+                <span class="lang-name">Hindi</span>
+                <span class="lang-native">हिन्दी</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('hi')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('hi')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('hi')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-hi">यहाँ अनुवाद दिखाई देगा...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-hi">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-hi">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Malayalam -->
+        <div class="card target-card malayalam-card" id="card-ml">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🌴</span>
+              <div>
+                <span class="lang-name">Malayalam</span>
+                <span class="lang-native">മലയാളം</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('ml')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('ml')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('ml')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-ml">മലയാളം പരിഭാഷ ഇവിടെ വരും...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-ml">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-ml">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Telugu -->
+        <div class="card target-card telugu-card" id="card-te">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🏛️</span>
+              <div>
+                <span class="lang-name">Telugu</span>
+                <span class="lang-native">తెలుగు</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('te')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('te')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('te')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-te">తెలుగు అనువాదం ఇక్కడ కనిపిస్తుంది...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-te">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-te">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Kannada -->
+        <div class="card target-card kannada-card" id="card-kn">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🌾</span>
+              <div>
+                <span class="lang-name">Kannada</span>
+                <span class="lang-native">ಕನ್ನಡ</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('kn')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('kn')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('kn')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-kn">ಕನ್ನಡ ಅನುವಾದ ಇಲ್ಲಿ ಗೋಚರಿಸುತ್ತದೆ...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-kn">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-kn">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Bengali -->
+        <div class="card target-card bengali-card" id="card-bn">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🐯</span>
+              <div>
+                <span class="lang-name">Bengali</span>
+                <span class="lang-native">বাংলা</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('bn')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('bn')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('bn')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-bn">এখানে অনুবাদ উপস্থিত হবে...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-bn">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-bn">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. Marathi -->
+        <div class="card target-card marathi-card" id="card-mr">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🚩</span>
+              <div>
+                <span class="lang-name">Marathi</span>
+                <span class="lang-native">मराठी</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('mr')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('mr')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('mr')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-mr">येथे भाषांतर दिसेल...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-mr">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-mr">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9. Gujarati -->
+        <div class="card target-card gujarati-card" id="card-gu">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🦁</span>
+              <div>
+                <span class="lang-name">Gujarati</span>
+                <span class="lang-native">ગુજરાતી</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('gu')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('gu')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('gu')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-gu">અહીં અનુવાદ દેખાશે...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-gu">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-gu">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10. Punjabi -->
+        <div class="card target-card punjabi-card" id="card-pa">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🌾</span>
+              <div>
+                <span class="lang-name">Punjabi</span>
+                <span class="lang-native">ਪੰਜਾਬੀ</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('pa')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('pa')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('pa')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-pa">ਇੱਥੇ ਅਨੁਵਾਦ ਦਿਖਾਈ ਦੇਵੇਗਾ...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-pa">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-pa">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 11. Odia -->
+        <div class="card target-card odia-card" id="card-or">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🛕</span>
+              <div>
+                <span class="lang-name">Odia</span>
+                <span class="lang-native">ଓଡ଼ିଆ</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('or')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('or')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('or')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-or">ଏଠାରେ ଅନୁବାଦ ଦେଖାଯିବ...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-or">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-or">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 12. Urdu -->
+        <div class="card target-card urdu-card" id="card-ur">
+          <div class="card-header">
+            <div class="lang-tag">
+              <span class="lang-flag">🌙</span>
+              <div>
+                <span class="lang-name">Urdu</span>
+                <span class="lang-native">اردو</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="action-btn speak-btn" onclick="speakLanguage('ur')" title="Listen Native Voice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </button>
+              <button class="action-btn download-btn" onclick="downloadLanguageAudio('ur')" title="Download Audio (MP3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn copy-btn" onclick="copyLanguage('ur')" title="Copy Text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="translated-text" id="text-ur" dir="rtl">یہاں ترجمہ ظاہر ہوگا...</p>
+            <div class="pronounce-wrap" id="pronounce-wrap-ur">
+              <span class="pronounce-badge">🗣️ Read:</span>
+              <span class="pronounce-text" id="pronounce-ur">Pronunciation will appear here...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>Bharat Voice Engine &bull; Zero Cloud Tokens &bull; 12 Languages Real-Time Simultaneous Translation, Auto Language Detection & Pronunciation</span>
+    </footer>
+  </div>
+
+  <!-- Gemini AI Connect Modal -->
+  <div class="modal-overlay" id="googleAuthModal" style="display:none;" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card">
+      <button class="modal-close-btn" onclick="closeGoogleLoginModal()">✕</button>
+      <div class="modal-header">
+        <div class="modal-google-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+        </div>
+        <h3 class="modal-title">Connect Gemini AI</h3>
+        <p class="modal-subtitle">Connect your Google Gemini API key to activate high-accuracy multilingual speech recognition & real-time translation.</p>
+      </div>
+
+      <div class="modal-body">
+        <!-- Step 1: 1-Click Open Link -->
+        <div class="gemini-step-box">
+          <div class="step-label"><span class="step-num">1</span> Sign in with Google to get your free API key:</div>
+          <button type="button" class="btn-get-gemini-key" onclick="openGeminiAIStudioLink()">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Get Free Gemini Key (1-Click)</span>
+            <span class="ext-icon">↗</span>
+          </button>
+          <div class="step-hint">Click above to open Google AI Studio &rarr; click "Create API Key" and copy it.</div>
+        </div>
+
+        <!-- Step 2: Paste Key -->
+        <div class="gemini-step-box" style="margin-top: 14px;">
+          <div class="step-label"><span class="step-num">2</span> Paste your API key here:</div>
+          <div class="key-input-wrapper">
+            <input type="password" id="geminiApiKeyInput" class="gemini-key-input" placeholder="AIzaSy..." autocomplete="off" spellcheck="false">
+            <button type="button" class="btn-toggle-eye" onclick="toggleKeyVisibility()" title="Show/Hide Key">👁️</button>
+            <button type="button" class="btn-paste-clipboard" onclick="pasteFromClipboard()" title="Paste from clipboard">📋 Paste</button>
+          </div>
+          <button type="button" class="btn-save-gemini" id="btnSaveGemini" onclick="saveGeminiApiKey()">
+            <span>✨ Connect & Verify Key</span>
+          </button>
+          <div id="keyFeedbackMsg" class="key-feedback-msg" style="display:none;"></div>
+        </div>
+
+        <div class="modal-feature-list" style="margin-top: 14px;">
+          <div class="feature-item">
+            <span class="feat-check">✓</span>
+            <span>Saved securely in your Windows profile (%APPDATA%)</span>
+          </div>
+          <div class="feature-item">
+            <span class="feat-check">✓</span>
+            <span>Unlocks Google Gemini Multimodal Audio Recognition</span>
+          </div>
+          <div class="feature-item">
+            <span class="feat-check">✓</span>
+            <span>12 Regional Languages speech translation active</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=9.3"></script>
+</body>
+</html>

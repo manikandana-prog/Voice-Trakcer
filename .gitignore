@@ -1,0 +1,25 @@
+# Secret keys
+.*_key
+.*_token
+.env
+*.env
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Build & Packaging
+build/
+dist/
+archive/
+*.spec
+
+# Large binaries & Model weights
+ffmpeg.exe
+models/
+
+# Generated media / runtime outputs
+cloned_outputs/
+saved_records/
+temp_uploads/
